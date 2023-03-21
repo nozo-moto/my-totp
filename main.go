@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha1"
-	"encoding/base32"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -12,42 +11,40 @@ import (
 )
 
 const (
-	digit = 6
+	t0 = 0
 )
 
 func main() {
 	args := os.Args
 	if len(args) != 2 {
-		panic("set base32 secret key")
+		panic("set optauth")
 	}
 
-	secret := []byte(args[1])
-	key := make([]byte, base32.StdEncoding.DecodedLen(len(secret)))
-	_, err := base32.StdEncoding.Decode(key, []byte(secret))
+	optAuth, err := ParseOptAuthURL(args[1])
 	if err != nil {
 		panic(err)
 	}
-
-	t0 := int64(0)
-	interval := int64(30)
-	totp := TOTP(key, t0, interval)
+	totp, err := TOTP(optAuth.Secret, t0, optAuth.Period, optAuth.Digits)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(totp)
 }
 
-func TOTP(key []byte, t int64, interval int64) uint64 {
+func TOTP(key []byte, t, interval int64, digit int) (uint64, error) {
 	counter := int((time.Now().UTC().Unix() - t) / interval)
 	hash, err := hmacSha1(key, counter)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	sNum, err := truncate(hash)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	hotp := sNum % uint64(math.Pow10(digit))
-	return hotp
+	return hotp, nil
 }
 
 func hmacSha1(key []byte, counter int) ([]byte, error) {
