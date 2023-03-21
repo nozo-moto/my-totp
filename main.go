@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha1"
+	"encoding/base32"
 	"encoding/binary"
 	"fmt"
 	"math"
+	"os"
 	"time"
 )
 
@@ -14,13 +16,26 @@ const (
 )
 
 func main() {
-	key := []byte("12345678901234567890")
-	totp := TOTP(key, time.Now().Add(time.Second*-10000).Unix(), 30)
+	args := os.Args
+	if len(args) != 2 {
+		panic("set base32 secret key")
+	}
+
+	secret := []byte(args[1])
+	key := make([]byte, base32.StdEncoding.DecodedLen(len(secret)))
+	_, err := base32.StdEncoding.Decode(key, []byte(secret))
+	if err != nil {
+		panic(err)
+	}
+
+	t0 := int64(0)
+	interval := int64(30)
+	totp := TOTP(key, t0, interval)
 	fmt.Println(totp)
 }
 
-func TOTP(key []byte, t int64, interval int) uint64 {
-	counter := int((time.Now().Unix() - t) / int64(interval))
+func TOTP(key []byte, t int64, interval int64) uint64 {
+	counter := int((time.Now().UTC().Unix() - t) / interval)
 	hash, err := hmacSha1(key, counter)
 	if err != nil {
 		panic(err)
