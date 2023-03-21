@@ -16,7 +16,7 @@ https://github.com/dim13/otpauth
 
 
 ``` shell
-$ my-totp 1Z2X3C4V
+$ my-totp "otpauth://totp/Twitter?algorithm=SHA1&digits=6&period=30&secret=OR3WS5DUMVZA====",
 > 123456
 ```
 
